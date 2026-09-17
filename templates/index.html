@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Automatic Text Summarization Using Transformer Models | NLP Mini Project</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="app-background"></div>
+
+    <!-- Navigation Header -->
+    <header class="navbar">
+        <div class="nav-container">
+            <div class="brand">
+                <i class="fa-solid fa-brain brand-icon"></i>
+                <div class="brand-text">
+                    <span class="brand-title">NLP Summarizer <span class="badge-pro">Transformers</span></span>
+                    <span class="brand-subtitle">Academic Mini Project</span>
+                </div>
+            </div>
+            <nav class="nav-links">
+                <a href="#workspace" class="nav-link active"><i class="fa-solid fa-wand-magic-sparkles"></i> Generator</a>
+                <a href="#architecture" class="nav-link" onclick="openModelModal()"><i class="fa-solid fa-microchip"></i> Model Architecture</a>
+                <button class="btn-presentation" onclick="openModelModal()">
+                    <i class="fa-solid fa-chalkboard-user"></i> Present Project
+                </button>
+            </nav>
+        </div>
+    </header>
+
+    <main class="main-container" id="workspace">
+        <!-- Hero Title Banner -->
+        <section class="hero-banner">
+            <div class="hero-badge"><i class="fa-solid fa-graduation-cap"></i> NLP Subject Mini Project</div>
+            <h1 class="hero-title">Automatic Text Summarization Using Transformer Models</h1>
+            <p class="hero-desc">Generate concise, high-quality abstractive summaries from text documents, PDFs, and Word files using deep learning sequence-to-sequence transformers.</p>
+        </section>
+
+        <!-- Main Workspace Grid -->
+        <div class="workspace-grid">
+            <!-- Left Input Column -->
+            <div class="card input-card">
+                <div class="card-header">
+                    <div class="tab-buttons">
+                        <button class="tab-btn active" id="tab-text-btn" onclick="switchInputTab('text')">
+                            <i class="fa-solid fa-align-left"></i> Text Input
+                        </button>
+                        <button class="tab-btn" id="tab-file-btn" onclick="switchInputTab('file')">
+                            <i class="fa-solid fa-file-arrow-up"></i> Upload Any File
+                        </button>
+                    </div>
+                </div>
+
+                <div class="card-body">
+                    <!-- Input Tab 1: Text Input -->
+                    <div class="input-pane active" id="pane-text">
+                        <div class="textarea-wrapper">
+                            <textarea id="raw-text-input" placeholder="Paste your article, paragraph, or research text here to summarize..." rows="12"></textarea>
+                            <div class="textarea-footer">
+                                <span id="input-word-count"><i class="fa-regular fa-file-lines"></i> 0 words</span>
+                                <div class="sample-buttons">
+                                    <button class="btn-chip" onclick="loadSampleText('ai')">AI Article</button>
+                                    <button class="btn-chip" onclick="loadSampleText('science')">Science Text</button>
+                                    <button class="btn-chip" onclick="clearInput()"><i class="fa-solid fa-trash-can"></i> Clear</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Input Tab 2: File Upload -->
+                    <div class="input-pane" id="pane-file">
+                        <div class="dropzone" id="dropzone" onclick="triggerFileInput()">
+                            <input type="file" id="file-input" accept=".txt,.pdf,.docx,.doc" onchange="handleFileSelected(this.files)">
+                            <div class="dropzone-content">
+                                <div class="drop-icon"><i class="fa-solid fa-cloud-arrow-up"></i></div>
+                                <h3>Drag & Drop your document here</h3>
+                                <p>Supports <strong>.txt</strong>, <strong>.pdf</strong>, and <strong>.docx</strong> (Word) files up to 16MB</p>
+                                <button class="btn-secondary mt-3" type="button"><i class="fa-solid fa-folder-open"></i> Browse File</button>
+                            </div>
+                        </div>
+
+                        <div class="file-details hidden" id="file-details">
+                            <div class="file-info-box">
+                                <i class="fa-solid fa-file-lines file-icon"></i>
+                                <div class="file-meta">
+                                    <span class="file-name" id="selected-file-name">filename.pdf</span>
+                                    <span class="file-size" id="selected-file-size">0 KB</span>
+                                </div>
+                                <button class="btn-remove-file" onclick="removeSelectedFile()"><i class="fa-solid fa-xmark"></i></button>
+                            </div>
+                            <div class="file-preview-box">
+                                <label>Extracted Text Preview:</label>
+                                <div class="preview-content" id="file-text-preview">Upload a file to see preview...</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Controls Section -->
+                    <div class="controls-wrapper">
+                        <div class="control-group">
+                            <label><i class="fa-solid fa-sliders"></i> Model Engine</label>
+                            <select id="model-select">
+                                <option value="transformer" selected>✨ Abstractive (DistilBART Transformer)</option>
+                                <option value="extractive">📊 Extractive (TF-IDF Baseline)</option>
+                            </select>
+                        </div>
+
+                        <div class="control-group">
+                            <label><i class="fa-solid fa-compress"></i> Summary Length</label>
+                            <select id="length-select">
+                                <option value="short">Short (~25-50 words)</option>
+                                <option value="medium" selected>Medium (~50-130 words)</option>
+                                <option value="long">Long (~90-220 words)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <button class="btn-primary" id="summarize-btn" onclick="executeSummarization()">
+                        <span id="btn-text"><i class="fa-solid fa-wand-magic-sparkles"></i> Generate Summary</span>
+                        <div class="spinner hidden" id="btn-spinner"></div>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Right Output Column -->
+            <div class="card output-card">
+                <div class="card-header">
+                    <h2 class="card-title"><i class="fa-solid fa-square-poll-vertical"></i> Summary & Analytics</h2>
+                    <span class="status-badge" id="output-status"><i class="fa-solid fa-clock-rotate-left"></i> Awaiting Input</span>
+                </div>
+
+                <div class="card-body">
+                    <!-- Metrics Overview Grid -->
+                    <div class="metrics-grid">
+                        <div class="metric-card">
+                            <div class="metric-icon purple"><i class="fa-solid fa-percent"></i></div>
+                            <div class="metric-data">
+                                <span class="metric-value" id="metric-compression">0%</span>
+                                <span class="metric-label">Compression</span>
+                            </div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-icon blue"><i class="fa-solid fa-bolt"></i></div>
+                            <div class="metric-data">
+                                <span class="metric-value" id="metric-speed">0.0s</span>
+                                <span class="metric-label">Inference Time</span>
+                            </div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-icon green"><i class="fa-solid fa-file-contract"></i></div>
+                            <div class="metric-data">
+                                <span class="metric-value" id="metric-orig-words">0</span>
+                                <span class="metric-label">Original Words</span>
+                            </div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-icon orange"><i class="fa-solid fa-align-center"></i></div>
+                            <div class="metric-data">
+                                <span class="metric-value" id="metric-summ-words">0</span>
+                                <span class="metric-label">Summary Words</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Summary Result Box -->
+                    <div class="summary-result-container">
+                        <div class="result-header">
+                            <span>Generated Summary</span>
+                            <div class="result-actions">
+                                <button class="btn-icon" onclick="copySummaryText()" title="Copy to Clipboard">
+                                    <i class="fa-regular fa-copy"></i>
+                                </button>
+                                <button class="btn-icon" onclick="downloadSummaryTXT()" title="Download TXT">
+                                    <i class="fa-solid fa-download"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="summary-text-box" id="summary-output">
+                            <div class="placeholder-state">
+                                <i class="fa-solid fa-layer-group"></i>
+                                <p>Generated summary will appear here after processing.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ROUGE Metrics Section -->
+                    <div class="rouge-container">
+                        <h3><i class="fa-solid fa-chart-simple"></i> Model Evaluation (ROUGE Metrics)</h3>
+                        <div class="rouge-bars">
+                            <div class="rouge-item">
+                                <div class="rouge-info">
+                                    <span>ROUGE-1 (Unigram Overlap)</span>
+                                    <strong id="rouge1-val">0.0%</strong>
+                                </div>
+                                <div class="bar-bg"><div class="bar-fill" id="rouge1-bar" style="width: 0%;"></div></div>
+                            </div>
+                            <div class="rouge-item">
+                                <div class="rouge-info">
+                                    <span>ROUGE-2 (Bigram Overlap)</span>
+                                    <strong id="rouge2-val">0.0%</strong>
+                                </div>
+                                <div class="bar-bg"><div class="bar-fill" id="rouge2-bar" style="width: 0%;"></div></div>
+                            </div>
+                            <div class="rouge-item">
+                                <div class="rouge-info">
+                                    <span>ROUGE-L (Longest Common Subsequence)</span>
+                                    <strong id="rougeL-val">0.0%</strong>
+                                </div>
+                                <div class="bar-bg"><div class="bar-fill" id="rougeL-bar" style="width: 0%;"></div></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Presentation Modal: Model Architecture & Details -->
+    <div class="modal-overlay hidden" id="model-modal">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h2><i class="fa-solid fa-microchip"></i> Project Architecture & Model Details</h2>
+                <button class="modal-close" onclick="closeModelModal()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body">
+                <div class="arch-section">
+                    <h3>1. System Overview</h3>
+                    <p>This project implements <strong>Automatic Text Summarization</strong> for NLP coursework using sequence-to-sequence neural network architectures. It supports abstractive summarization via Hugging Face Transformers and an extractive baseline for benchmark comparison.</p>
+                </div>
+
+                <div class="arch-cards-grid">
+                    <div class="arch-card">
+                        <div class="arch-badge">Abstractive Model</div>
+                        <h4>DistilBART Transformer</h4>
+                        <ul>
+                            <li><strong>Architecture:</strong> Encoder-Decoder Sequence-to-Sequence</li>
+                            <li><strong>Pretrained Base:</strong> <code>sshleifer/distilbart-cnn-12-6</code></li>
+                            <li><strong>Parameters:</strong> ~306 Million</li>
+                            <li><strong>Mechanism:</strong> Multi-Head Self-Attention, Autoregressive Decoding</li>
+                            <li><strong>Behavior:</strong> Paraphrases and synthesizes new sentences.</li>
+                        </ul>
+                    </div>
+
+                    <div class="arch-card">
+                        <div class="arch-badge baseline">Extractive Baseline</div>
+                        <h4>TF-IDF Sentence Ranker</h4>
+                        <ul>
+                            <li><strong>Algorithm:</strong> Term Frequency-Inverse Document Frequency</li>
+                            <li><strong>Mechanism:</strong> Sentence scoring based on normalized word frequencies</li>
+                            <li><strong>Speed:</strong> Instantaneous CPU execution (&lt; 0.05s)</li>
+                            <li><strong>Behavior:</strong> Extracts exact original sentences without rephrasing.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="arch-section">
+                    <h3>2. Pipeline Workflow</h3>
+                    <div class="workflow-steps">
+                        <div class="step">
+                            <span class="step-num">1</span>
+                            <div class="step-content">
+                                <strong>Input Parsing & Extraction</strong>
+                                <p>Extracts text from TXT, PDF (via <code>pypdf</code>), or DOCX (via <code>python-docx</code>), followed by whitespace normalization.</p>
+                            </div>
+                        </div>
+                        <div class="step">
+                            <span class="step-num">2</span>
+                            <div class="step-content">
+                                <strong>Tokenization & Chunking</strong>
+                                <p>Splits long text into max 450-word chunks matching Transformer positional encoding limits.</p>
+                            </div>
+                        </div>
+                        <div class="step">
+                            <span class="step-num">3</span>
+                            <div class="step-content">
+                                <strong>Transformer Generation</strong>
+                                <p>Encoder extracts contextual representations; Decoder autoregressively generates summary tokens.</p>
+                            </div>
+                        </div>
+                        <div class="step">
+                            <span class="step-num">4</span>
+                            <div class="step-content">
+                                <strong>Evaluation & Metrics</strong>
+                                <p>Calculates compression percentage, inference speed, and estimated ROUGE-1/2/L overlap scores.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-primary" onclick="closeModelModal()">Close & Return to Generator</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div class="toast hidden" id="toast"></div>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>
