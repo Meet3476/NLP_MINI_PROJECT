@@ -217,6 +217,16 @@ function renderResults(data) {
     const summaryBox = document.getElementById('summary-output');
     summaryBox.innerHTML = `<p>${data.summary}</p>`;
 
+    // Update Keywords Chips
+    const kwContainer = document.getElementById('keywords-container');
+    const kwChips = document.getElementById('keywords-chips');
+    if (metrics.top_keywords && metrics.top_keywords.length > 0) {
+        kwChips.innerHTML = metrics.top_keywords.map(kw => `<span class="kw-badge"># ${kw}</span>`).join(' ');
+        kwContainer.classList.remove('hidden');
+    } else {
+        kwContainer.classList.add('hidden');
+    }
+
     // Update ROUGE Metrics
     const rouge = metrics.rouge;
     document.getElementById('rouge1-val').innerText = `${rouge.rouge1}%`;

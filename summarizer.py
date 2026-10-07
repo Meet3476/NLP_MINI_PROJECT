@@ -148,8 +148,23 @@ def abstractive_transformer_summarize(text: str, length_setting: str = "medium")
 
     return full_summary
 
-def calculate_n_gram_overlap(reference: str, hypothesis: str, n: int) -> float:
-    """Calculate n-gram recall overlap (ROUGE approximation)."""
+def extract_top_keywords(text: str, top_n: int = 6) -> list[str]:
+    """Extract top TF-IDF key terms from text."""
+    words = re.findall(r'\b[a-zA-Z]{3,}\b', text.lower())
+    stopwords = {
+        'the', 'is', 'at', 'which', 'on', 'a', 'an', 'and', 'or', 'in', 'to', 'of',
+        'for', 'with', 'by', 'as', 'that', 'it', 'this', 'be', 'are', 'was', 'were',
+        'from', 'at', 'have', 'has', 'had', 'not', 'but', 'what', 'all', 'were', 'when',
+        'we', 'there', 'can', 'an', 'your', 'which', 'their', 'if', 'will', 'each', 'about',
+        'also', 'more', 'than', 'been', 'other', 'into', 'some', 'then', 'them', 'these',
+        'those', 'such', 'using', 'used', 'from', 'over', 'under', 'between', 'through'
+    }
+    filtered = [w for w in words if w not in stopwords]
+    counts = Counter(filtered)
+    return [w for w, _ in counts.most_common(top_n)]
+
+def calculate_n_gram_f1(reference: str, hypothesis: str, n: int) -> float:
+    """Calculate n-gram F1 overlap score (ROUGE-1 / ROUGE-2)."""
     ref_words = re.findall(r'\b\w+\b', reference.lower())
     hyp_words = re.findall(r'\b\w+\b', hypothesis.lower())
     
@@ -164,8 +179,17 @@ def calculate_n_gram_overlap(reference: str, hypothesis: str, n: int) -> float:
         if ngram in ref_ngrams:
             overlap += min(count, ref_ngrams[ngram])
 
+    total_hyp = sum(hyp_ngrams.values())
     total_ref = sum(ref_ngrams.values())
-    return (overlap / total_ref * 100) if total_ref > 0 else 0.0
+
+    precision = (overlap / total_hyp) if total_hyp > 0 else 0.0
+    recall = (overlap / total_ref) if total_ref > 0 else 0.0
+
+    if (precision + recall) == 0:
+        return 0.0
+
+    f1 = 2 * (precision * recall) / (precision + recall)
+    return round(f1 * 100, 2)
 
 def lcs_length(x: list[str], y: list[str]) -> int:
     """Compute Longest Common Subsequence length for ROUGE-L."""
@@ -180,15 +204,18 @@ def lcs_length(x: list[str], y: list[str]) -> int:
     return dp[m][n]
 
 def calculate_rouge_metrics(original: str, summary: str) -> dict:
-    """Calculate ROUGE-1, ROUGE-2, and ROUGE-L scores."""
-    r1 = calculate_n_gram_overlap(original, summary, 1)
-    r2 = calculate_n_gram_overlap(original, summary, 2)
+    """Calculate ROUGE-1, ROUGE-2, and ROUGE-L F1 scores."""
+    r1 = calculate_n_gram_f1(original, summary, 1)
+    r2 = calculate_n_gram_f1(original, summary, 2)
     
     orig_words = re.findall(r'\b\w+\b', original.lower())
     summ_words = re.findall(r'\b\w+\b', summary.lower())
     
-    lcs_val = lcs_length(orig_words[:200], summ_words[:100])
-    rl = (lcs_val / len(orig_words[:200]) * 100) if orig_words else 0.0
+    lcs_val = lcs_length(orig_words[:250], summ_words[:120])
+    prec_l = (lcs_val / len(summ_words[:120])) if summ_words[:120] else 0.0
+    rec_l = (lcs_val / len(orig_words[:250])) if orig_words[:250] else 0.0
+
+    rl = (2 * prec_l * rec_l / (prec_l + rec_l) * 100) if (prec_l + rec_l) > 0 else 0.0
 
     return {
         "rouge1": round(r1, 2),
@@ -222,6 +249,7 @@ def summarize_text(text: str, model_type: str = "transformer", length_setting: s
     compression_ratio = max(0.0, compression_ratio)
 
     rouge_scores = calculate_rouge_metrics(text, summary)
+    keywords = extract_top_keywords(text, top_n=6)
 
     return {
         "summary": summary,
@@ -233,6 +261,7 @@ def summarize_text(text: str, model_type: str = "transformer", length_setting: s
             "summary_sentences": summary_sentences,
             "compression_ratio_pct": compression_ratio,
             "inference_time_sec": elapsed_time,
+            "top_keywords": keywords,
             "rouge": rouge_scores
         }
     }
